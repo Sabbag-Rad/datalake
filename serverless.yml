@@ -1,0 +1,64 @@
+service: sabbag-data-lake
+
+frameworkVersion: "4"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-dotenv-plugin
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+    strip: true
+    noDeploy:
+      - boto3
+      - botocore
+      - docutils
+      - jmespath
+      - pip
+      - python-dateutil
+      - s3transfer
+      - setuptools
+      - six
+      - urllib3
+      - wheel
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-east-1
+  environment:
+    BUCKET_NAME: sabbag-data-lake-bucket
+    DB_MEDILAB_SECRET_ARN: ${env:DB_MEDILAB_SECRET_ARN}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+        - s3:ListBucket
+      Resource:
+        - arn:aws:s3:::sabbag-data-lake-bucket
+        - arn:aws:s3:::sabbag-data-lake-bucket/*
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: ${env:DB_MEDILAB_SECRET_ARN}
+    - Effect: Allow
+      Action:
+        - glue:*
+        - logs:*
+        - iam:PassRole
+      Resource: "*"
+
+package:
+  patterns:
+    - '!**'
+    - 'src/**'
+    - 'requirements.txt'
+
+functions:
+  etlIngest:
+    handler: src/handler.main
+    timeout: 300
+    events: ${file(./events.yml):etlIngest}

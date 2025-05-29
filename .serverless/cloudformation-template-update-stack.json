@@ -1,0 +1,1134 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "EtlIngestLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/sabbag-data-lake-dev-etlIngest"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "sabbag-data-lake",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/sabbag-data-lake-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/sabbag-data-lake-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::sabbag-data-lake-bucket",
+                    "arn:aws:s3:::sabbag-data-lake-bucket/*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": "arn:aws:secretsmanager:us-east-1:147997148445:secret:DB/SandBox/PostgreSQL/Medilab-p8Pa1w"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "glue:*",
+                    "logs:*",
+                    "iam:PassRole"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "sabbag-data-lake",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "EtlIngestLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-framework-deployments-us-east-1-acf9496c-ceb6",
+          "S3Key": "serverless/sabbag-data-lake/dev/1748545278285-2025-05-29T19:01:18.285Z/sabbag-data-lake.zip"
+        },
+        "Handler": "src/handler.main",
+        "Runtime": "python3.9",
+        "FunctionName": "sabbag-data-lake-dev-etlIngest",
+        "MemorySize": 1024,
+        "Timeout": 300,
+        "Environment": {
+          "Variables": {
+            "BUCKET_NAME": "sabbag-data-lake-bucket",
+            "DB_MEDILAB_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:147997148445:secret:DB/SandBox/PostgreSQL/Medilab-p8Pa1w"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "EtlIngestLogGroup"
+      ]
+    },
+    "EtlIngestLambdaVersionH1LMR7NgUgpDj5zhn5RuqeOXyEsimEKmeqafzfACM": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "EtlIngestLambdaFunction"
+        },
+        "CodeSha256": "Tjl+LWrNVcNqL5XoYHcjcgsKB3SrjOldU/Fe8Zp+ozg="
+      }
+    },
+    "SabbagdatalakedevetlIngestrule1EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-1",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-1-target",
+            "Input": "{\"target_table\":\"mediclinic.caixa\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-1"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule2EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-2",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-2-target",
+            "Input": "{\"target_table\":\"mediclinic.clinica\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission2": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-2"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule3EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-3",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-3-target",
+            "Input": "{\"target_table\":\"mediclinic.contas\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission3": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-3"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule4EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-4",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-4-target",
+            "Input": "{\"target_table\":\"mediclinic.convenios\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission4": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-4"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule5EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-5",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-5-target",
+            "Input": "{\"target_table\":\"mediclinic.dm_tipos_convenio\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission5": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-5"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule6EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-6",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-6-target",
+            "Input": "{\"target_table\":\"mediclinic.equip_agendas\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission6": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-6"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule7EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-7",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-7-target",
+            "Input": "{\"target_table\":\"mediclinic.equipamentos\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission7": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-7"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule8EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-8",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-8-target",
+            "Input": "{\"target_table\":\"mediclinic.exames\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission8": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-8"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule9EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-9",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-9-target",
+            "Input": "{\"target_table\":\"mediclinic.faturas\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission9": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-9"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule10EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-10",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-10-target",
+            "Input": "{\"target_table\":\"mediclinic.medicos_solicitante\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission10": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-10"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule11EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-11",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-11-target",
+            "Input": "{\"target_table\":\"mediclinic.modalidades\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission11": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-11"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule12EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-12",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-12-target",
+            "Input": "{\"target_table\":\"mediclinic.planos\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission12": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-12"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule13EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-13",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-13-target",
+            "Input": "{\"target_table\":\"mediclinic.procedencias\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission13": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-13"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule14EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-14",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-14-target",
+            "Input": "{\"target_table\":\"mediclinic.servicios\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission14": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-14"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule15EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-15",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-15-target",
+            "Input": "{\"target_table\":\"mediclinic.usuarios\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission15": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-15"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "SabbagdatalakedevetlIngestrule16EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "sabbag-data-lake-dev-etlIngest-rule-16",
+        "ScheduleExpression": "cron(0 5 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "EtlIngestLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "sabbag-data-lake-dev-etlIngest-rule-16-target",
+            "Input": "{\"target_table\":\"mediclinic.pacientes\"}"
+          }
+        ]
+      }
+    },
+    "EtlIngestEventBridgeLambdaPermission16": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EtlIngestLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            ":",
+            [
+              "arn",
+              {
+                "Ref": "AWS::Partition"
+              },
+              "events",
+              {
+                "Ref": "AWS::Region"
+              },
+              {
+                "Ref": "AWS::AccountId"
+              },
+              {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "rule",
+                    "sabbag-data-lake-dev-etlIngest-rule-16"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "serverless-framework-deployments-us-east-1-acf9496c-ceb6",
+      "Export": {
+        "Name": "sls-sabbag-data-lake-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "EtlIngestLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "EtlIngestLambdaVersionH1LMR7NgUgpDj5zhn5RuqeOXyEsimEKmeqafzfACM"
+      },
+      "Export": {
+        "Name": "sls-sabbag-data-lake-dev-EtlIngestLambdaFunctionQualifiedArn"
+      }
+    }
+  }
+}

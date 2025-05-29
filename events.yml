@@ -1,0 +1,65 @@
+etlIngest:
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.caixa
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.clinica
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.contas
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.convenios
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.dm_tipos_convenio
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.equip_agendas
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.equipamentos
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.exames
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.faturas
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.medicos_solicitante
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.modalidades
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.planos
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.procedencias
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.servicios
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.usuarios
+  - eventBridge:
+      schedule: cron(0 5 * * ? *)
+      input:
+        target_table: mediclinic.pacientes
