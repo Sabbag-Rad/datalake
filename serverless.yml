@@ -61,4 +61,5 @@ functions:
   etlIngest:
     handler: src/handler.main
     timeout: 300
+    memorySize: 2048
     events: ${file(./events.yml):etlIngest}
