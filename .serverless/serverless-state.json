@@ -146,12 +146,12 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-acf9496c-ceb6",
-                "S3Key": "serverless/sabbag-data-lake/dev/1748619784384-2025-05-30T15:43:04.384Z/sabbag-data-lake.zip"
+                "S3Key": "serverless/sabbag-data-lake/dev/1748979754047-2025-06-03T19:42:34.047Z/sabbag-data-lake.zip"
               },
               "Handler": "src/handler.main",
               "Runtime": "python3.9",
               "FunctionName": "sabbag-data-lake-dev-etlIngest",
-              "MemorySize": 2048,
+              "MemorySize": 4096,
               "Timeout": 300,
               "Environment": {
                 "Variables": {
@@ -170,7 +170,7 @@
               "EtlIngestLogGroup"
             ]
           },
-          "EtlIngestLambdaVersionhybRM7zVEhSs5tUTBBNmoMN2HELz1HG6YMAbHhoejg": {
+          "EtlIngestLambdaVersionE7TkxLApBsYuh9V2a9v5kwLTp554lyr6mwktB5OY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
@@ -1058,7 +1058,7 @@
           "EtlIngestLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "EtlIngestLambdaVersionhybRM7zVEhSs5tUTBBNmoMN2HELz1HG6YMAbHhoejg"
+              "Ref": "EtlIngestLambdaVersionE7TkxLApBsYuh9V2a9v5kwLTp554lyr6mwktB5OY"
             },
             "Export": {
               "Name": "sls-sabbag-data-lake-dev-EtlIngestLambdaFunctionQualifiedArn"
@@ -1097,7 +1097,7 @@
       "etlIngest": {
         "handler": "src/handler.main",
         "timeout": 300,
-        "memorySize": 2048,
+        "memorySize": 4096,
         "events": [
           {
             "eventBridge": {
@@ -1230,10 +1230,10 @@
         ],
         "name": "sabbag-data-lake-dev-etlIngest",
         "package": {},
-        "memory": 2048,
+        "memory": 4096,
         "runtime": "python3.9",
         "vpc": {},
-        "versionLogicalId": "EtlIngestLambdaVersionhybRM7zVEhSs5tUTBBNmoMN2HELz1HG6YMAbHhoejg"
+        "versionLogicalId": "EtlIngestLambdaVersionE7TkxLApBsYuh9V2a9v5kwLTp554lyr6mwktB5OY"
       }
     },
     "configValidationMode": "warn",
@@ -1259,7 +1259,7 @@
         "artifactsS3KeyDirname": "serverless/sabbag-data-lake/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-acf9496c-ceb6",
         "artifact": "C:\\Users\\ManuelJesusPucheDona\\Documents\\GitHub\\datalake\\.serverless\\sabbag-data-lake.zip",
-        "artifactDirectoryName": "serverless/sabbag-data-lake/dev/1748619784384-2025-05-30T15:43:04.384Z"
+        "artifactDirectoryName": "serverless/sabbag-data-lake/dev/1748979754047-2025-06-03T19:42:34.047Z"
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
@@ -1271,7 +1271,7 @@
     "artifact": "C:\\Users\\ManuelJesusPucheDona\\Documents\\GitHub\\datalake\\.serverless\\sabbag-data-lake.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/sabbag-data-lake/dev/1748619784384-2025-05-30T15:43:04.384Z",
+    "artifactDirectoryName": "serverless/sabbag-data-lake/dev/1748979754047-2025-06-03T19:42:34.047Z",
     "artifact": "sabbag-data-lake.zip"
   }
 }

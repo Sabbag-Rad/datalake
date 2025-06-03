@@ -119,12 +119,12 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-acf9496c-ceb6",
-          "S3Key": "serverless/sabbag-data-lake/dev/1748619784384-2025-05-30T15:43:04.384Z/sabbag-data-lake.zip"
+          "S3Key": "serverless/sabbag-data-lake/dev/1748979754047-2025-06-03T19:42:34.047Z/sabbag-data-lake.zip"
         },
         "Handler": "src/handler.main",
         "Runtime": "python3.9",
         "FunctionName": "sabbag-data-lake-dev-etlIngest",
-        "MemorySize": 2048,
+        "MemorySize": 4096,
         "Timeout": 300,
         "Environment": {
           "Variables": {
@@ -143,7 +143,7 @@
         "EtlIngestLogGroup"
       ]
     },
-    "EtlIngestLambdaVersionhybRM7zVEhSs5tUTBBNmoMN2HELz1HG6YMAbHhoejg": {
+    "EtlIngestLambdaVersionE7TkxLApBsYuh9V2a9v5kwLTp554lyr6mwktB5OY": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -1124,7 +1124,7 @@
     "EtlIngestLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "EtlIngestLambdaVersionhybRM7zVEhSs5tUTBBNmoMN2HELz1HG6YMAbHhoejg"
+        "Ref": "EtlIngestLambdaVersionE7TkxLApBsYuh9V2a9v5kwLTp554lyr6mwktB5OY"
       },
       "Export": {
         "Name": "sls-sabbag-data-lake-dev-EtlIngestLambdaFunctionQualifiedArn"
